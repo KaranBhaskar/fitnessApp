@@ -1,11 +1,16 @@
 import { Bell, Lock } from "lucide-react";
+import { useAuthActions } from "@convex-dev/auth/react";
 import { useNavigate } from "react-router-dom";
 import { useApp } from "../app/AppContext";
 
 export function PendingPage() {
-  const { currentUser, signOut } = useApp();
+  const { authMode, currentUser, signOut } = useApp();
   const navigate = useNavigate();
   const suspended = currentUser?.status === "suspended";
+  const handleLocalSignOut = () => {
+    signOut();
+    navigate("/");
+  };
   return (
     <main className="flex min-h-screen items-center justify-center px-4 py-8">
       <section className="max-w-md rounded-[2rem] border border-plum/10 bg-white p-6 dark:border-white/10 dark:bg-white/10">
@@ -18,16 +23,29 @@ export function PendingPage() {
             ? "An admin has suspended this account. Protected features stay blocked until it is reactivated."
             : "Your Google account is signed in, but the app is in beta. An admin needs to approve access before tracking opens."}
         </p>
-        <button
-          className="focus-ring mt-6 rounded-2xl bg-plum px-5 py-4 font-black text-white"
-          onClick={() => {
-            signOut();
-            navigate("/");
-          }}
-        >
-          Sign out
-        </button>
+        {authMode === "convex" ? (
+          <ConvexPendingSignOut afterSignOut={handleLocalSignOut} />
+        ) : (
+          <button
+            className="focus-ring mt-6 rounded-2xl bg-plum px-5 py-4 font-black text-white"
+            onClick={handleLocalSignOut}
+          >
+            Sign out
+          </button>
+        )}
       </section>
     </main>
+  );
+}
+
+function ConvexPendingSignOut({ afterSignOut }: { afterSignOut: () => void }) {
+  const { signOut } = useAuthActions();
+  return (
+    <button
+      className="focus-ring mt-6 rounded-2xl bg-plum px-5 py-4 font-black text-white"
+      onClick={() => void signOut().then(afterSignOut)}
+    >
+      Sign out
+    </button>
   );
 }

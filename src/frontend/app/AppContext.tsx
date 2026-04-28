@@ -255,7 +255,7 @@ function ConvexProfileBridge({
       }));
       setAuthStatus({ loading: false, authenticated: true });
     }).catch(() => {
-      setAuthStatus({ loading: false, authenticated: true });
+      setAuthStatus({ loading: false, authenticated: false });
     });
   }, [ensureProfile, isAuthenticated, isLoading, setAuthStatus, setState]);
 

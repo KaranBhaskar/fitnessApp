@@ -29,6 +29,16 @@ export const viewer = query({
   },
 });
 
+export const authConfiguration = query({
+  args: {},
+  handler: async () => ({
+    hasGoogleClientId: Boolean(process.env.AUTH_GOOGLE_ID),
+    hasGoogleClientSecret: Boolean(process.env.AUTH_GOOGLE_SECRET),
+    hasSiteUrl: Boolean(process.env.SITE_URL),
+    hasOwnerAllowlist: Boolean(process.env.OWNER_EMAIL_ALLOWLIST),
+  }),
+});
+
 export const ensureProfile = mutation({
   args: {},
   handler: async (ctx) => {

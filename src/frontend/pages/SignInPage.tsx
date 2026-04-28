@@ -1,26 +1,38 @@
 import { Flame } from "lucide-react";
 import { useAuthActions } from "@convex-dev/auth/react";
+import { useQuery } from "convex/react";
+import { useEffect, useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { useApp } from "../app/AppContext";
 import { Footer } from "../layouts/Footer";
 import { signedInDestination } from "../app/routes";
+import { authConfigurationRef } from "../backend/convexRefs";
 
 export function SignInPage() {
   const {
     authLoading,
     authMode,
-    convexAuthenticated,
     currentUser,
     signInDemoGoogle,
     state,
   } = useApp();
   const navigate = useNavigate();
+  const [loadingTimedOut, setLoadingTimedOut] = useState(false);
+
+  useEffect(() => {
+    if (!authLoading) {
+      setLoadingTimedOut(false);
+      return;
+    }
+    const timer = window.setTimeout(() => setLoadingTimedOut(true), 8000);
+    return () => window.clearTimeout(timer);
+  }, [authLoading]);
 
   if (currentUser) {
     return <Navigate to={signedInDestination(currentUser, state)} replace />;
   }
 
-  if (authMode === "convex" && (authLoading || convexAuthenticated)) {
+  if (authMode === "convex" && authLoading && !loadingTimedOut) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-cream px-4 text-plum dark:bg-[#160229] dark:text-cream">
         <div className="rounded-3xl border border-plum/10 bg-white p-5 text-sm font-black dark:border-white/10 dark:bg-white/10">
@@ -61,13 +73,72 @@ export function SignInPage() {
 
 function ConvexGoogleButton() {
   const { signIn } = useAuthActions();
-  return <GoogleButton onClick={() => void signIn("google")} />;
+  const authConfig = useQuery(authConfigurationRef, {});
+  const [error, setError] = useState<string | undefined>();
+  const missing = authConfig
+    ? [
+        !authConfig.hasGoogleClientId ? "AUTH_GOOGLE_ID" : undefined,
+        !authConfig.hasGoogleClientSecret ? "AUTH_GOOGLE_SECRET" : undefined,
+        !authConfig.hasSiteUrl ? "SITE_URL" : undefined,
+      ].filter(Boolean)
+    : [];
+  const ownerMissing = authConfig?.hasOwnerAllowlist === false;
+
+  if (authConfig === undefined) {
+    return <GoogleButton disabled label="Checking Google setup" onClick={() => undefined} />;
+  }
+
+  if (missing.length > 0) {
+    return (
+      <div className="space-y-3">
+        <GoogleButton disabled label="Google setup incomplete" onClick={() => undefined} />
+        <p className="rounded-2xl border border-honey bg-honey/15 px-4 py-3 text-xs font-black leading-5 text-plum dark:text-cream">
+          Convex is missing {missing.join(", ")}. Set these in Convex env, then redeploy/retry sign in.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <GoogleButton
+        onClick={() => {
+          setError(undefined);
+          void signIn("google", { redirectTo: "/" }).catch(() => {
+            setError("Google sign-in could not start. Check Convex Auth environment variables and Google OAuth redirect URLs.");
+          });
+        }}
+      />
+      {ownerMissing && (
+        <p className="rounded-2xl border border-honey bg-honey/15 px-4 py-3 text-xs font-black leading-5 text-plum dark:text-cream">
+          OWNER_EMAIL_ALLOWLIST is not set, so site-owner accounts will not auto-approve yet.
+        </p>
+      )}
+      {error && (
+        <p className="rounded-2xl border border-rose bg-rose/15 px-4 py-3 text-xs font-black leading-5 text-plum dark:text-cream">
+          {error}
+        </p>
+      )}
+    </div>
+  );
 }
 
-function GoogleButton({ onClick }: { onClick: () => void }) {
+function GoogleButton({
+  disabled = false,
+  label = "Continue with Google",
+  onClick,
+}: {
+  disabled?: boolean;
+  label?: string;
+  onClick: () => void;
+}) {
   return (
-    <button className="focus-ring flex w-full items-center justify-center gap-3 rounded-2xl bg-plum px-5 py-4 font-black text-white" onClick={onClick}>
-      <GoogleLogo /> Continue with Google
+    <button
+      className="focus-ring flex w-full items-center justify-center gap-3 rounded-2xl bg-plum px-5 py-4 font-black text-white disabled:cursor-not-allowed disabled:bg-plum/45 disabled:text-white/70"
+      disabled={disabled}
+      onClick={onClick}
+    >
+      <GoogleLogo /> {label}
     </button>
   );
 }

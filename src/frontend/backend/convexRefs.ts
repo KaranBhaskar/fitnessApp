@@ -26,6 +26,17 @@ export const ensureProfileRef = makeFunctionReference<
   Record<string, unknown> | null
 >("profiles:ensureProfile");
 
+export const authConfigurationRef = makeFunctionReference<
+  "query",
+  Record<string, never>,
+  {
+    hasGoogleClientId: boolean;
+    hasGoogleClientSecret: boolean;
+    hasSiteUrl: boolean;
+    hasOwnerAllowlist: boolean;
+  }
+>("profiles:authConfiguration");
+
 export const dashboardSummaryRef = makeFunctionReference<
   "query",
   Record<string, never>,

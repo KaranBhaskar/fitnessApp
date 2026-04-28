@@ -50,11 +50,25 @@ npx convex env set AUTH_GOOGLE_SECRET <your-google-client-secret>
 npx convex env set OWNER_EMAIL_ALLOWLIST you@example.com
 ```
 
+If you are using the local Convex backend from `.env.local` (`VITE_CONVEX_URL=http://127.0.0.1:3210`), set the same values on the local deployment:
+
+```bash
+npx convex env set --deployment local SITE_URL http://localhost:5173
+npx convex env set --deployment local AUTH_GOOGLE_ID <your-google-client-id>
+npx convex env set --deployment local AUTH_GOOGLE_SECRET <your-google-client-secret>
+npx convex env set --deployment local OWNER_EMAIL_ALLOWLIST you@example.com
+```
+
 For production, set `SITE_URL` to the deployed frontend origin, for example:
 
 ```bash
-npx convex env set SITE_URL https://your-project.vercel.app
+npx convex env set --prod SITE_URL https://your-project.vercel.app
+npx convex env set --prod AUTH_GOOGLE_ID <your-google-client-id>
+npx convex env set --prod AUTH_GOOGLE_SECRET <your-google-client-secret>
+npx convex env set --prod OWNER_EMAIL_ALLOWLIST you@example.com
 ```
+
+The sign-in page checks these Convex env vars without exposing secret values. If it says `Google setup incomplete`, the variables are missing on the Convex deployment that the frontend is currently connected to.
 
 For production, also add the production Vercel/custom-domain origin to Google and use the production Convex `.site` callback URL.
 
