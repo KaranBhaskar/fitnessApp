@@ -109,6 +109,9 @@ export default function App({ authMode }: { authMode: AuthMode }) {
             <Route path="/sign-in" element={<SignInPage />} />
             <Route path="/pending" element={<PendingPage />} />
             <Route element={<RequireAuth />}>
+              <Route element={<RequireAdmin />}>
+                <Route path="/admin" element={<AdminPage />} />
+              </Route>
               <Route path="/onboarding" element={<OnboardingPage />} />
               <Route element={<RequireOnboarding />}>
                 <Route path="/dashboard" element={<DashboardPage />} />
@@ -136,9 +139,6 @@ export default function App({ authMode }: { authMode: AuthMode }) {
                 />
                 <Route path="/privacy" element={<PrivacyPage />} />
                 <Route path="/account" element={<AccountPage />} />
-                <Route element={<RequireAdmin />}>
-                  <Route path="/admin" element={<AdminPage />} />
-                </Route>
               </Route>
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />

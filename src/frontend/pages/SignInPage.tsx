@@ -1,12 +1,17 @@
 import { Flame } from "lucide-react";
 import { useAuthActions } from "@convex-dev/auth/react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, Navigate, useNavigate } from "react-router-dom";
 import { useApp } from "../app/AppContext";
 import { Footer } from "../layouts/Footer";
+import { signedInDestination } from "../app/routes";
 
 export function SignInPage() {
-  const { authMode, signInDemoGoogle } = useApp();
+  const { authMode, currentUser, signInDemoGoogle, state } = useApp();
   const navigate = useNavigate();
+
+  if (currentUser) {
+    return <Navigate to={signedInDestination(currentUser, state)} replace />;
+  }
 
   function demoSignIn() {
     signInDemoGoogle();

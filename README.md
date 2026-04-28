@@ -44,9 +44,16 @@ The Convex HTTP Actions URL is in the Convex dashboard under **Settings -> URL &
 Set Convex environment variables:
 
 ```bash
+npx convex env set SITE_URL http://localhost:5173
 npx convex env set AUTH_GOOGLE_ID <your-google-client-id>
 npx convex env set AUTH_GOOGLE_SECRET <your-google-client-secret>
 npx convex env set OWNER_EMAIL_ALLOWLIST you@example.com
+```
+
+For production, set `SITE_URL` to the deployed frontend origin, for example:
+
+```bash
+npx convex env set SITE_URL https://your-project.vercel.app
 ```
 
 For production, also add the production Vercel/custom-domain origin to Google and use the production Convex `.site` callback URL.
@@ -76,6 +83,7 @@ Required Vercel environment variables:
 
 Required Convex environment variables:
 
+- `SITE_URL`
 - `AUTH_GOOGLE_ID`
 - `AUTH_GOOGLE_SECRET`
 - `OWNER_EMAIL_ALLOWLIST`

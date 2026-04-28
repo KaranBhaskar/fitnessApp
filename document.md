@@ -778,6 +778,7 @@ Workout-specific UX decisions:
 ```bash
 CONVEX_DEPLOY_KEY=
 VITE_CONVEX_URL=
+SITE_URL=
 AUTH_GOOGLE_ID=
 AUTH_GOOGLE_SECRET=
 OWNER_EMAIL_ALLOWLIST=
@@ -791,6 +792,7 @@ Local development:
 
 Convex deployment variables:
 
+- `SITE_URL`
 - `AUTH_GOOGLE_ID`
 - `AUTH_GOOGLE_SECRET`
 - `OWNER_EMAIL_ALLOWLIST`
@@ -816,10 +818,13 @@ Production:
 Set Convex env variables:
 
 ```bash
+npx convex env set SITE_URL http://localhost:5173
 npx convex env set AUTH_GOOGLE_ID <google-client-id>
 npx convex env set AUTH_GOOGLE_SECRET <google-client-secret>
 npx convex env set OWNER_EMAIL_ALLOWLIST you@example.com
 ```
+
+For production, set `SITE_URL` to the deployed frontend URL, such as `https://your-project.vercel.app` or your custom domain. Convex Auth uses this value to redirect users back to the app after Google OAuth completes.
 
 ## Deploy Checklist
 

@@ -1,13 +1,17 @@
 import { Activity, Flame, LineChart, Lock, Moon, Shield, Sun } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import { Footer } from "../layouts/Footer";
 import { IconButton } from "../components/ui";
 import { useApp } from "../app/AppContext";
+import { signedInDestination } from "../app/routes";
 
 const appName = (import.meta.env.VITE_APP_NAME as string | undefined) ?? "Fitness Tracker";
 
 export function LandingPage() {
-  const { dark, setDark } = useApp();
+  const { currentUser, dark, setDark, state } = useApp();
+  if (currentUser) {
+    return <Navigate to={signedInDestination(currentUser, state)} replace />;
+  }
   return (
     <main className="min-h-screen text-ink dark:text-cream">
       <header className="mx-auto flex max-w-6xl items-center justify-between px-4 py-5">
