@@ -8,13 +8,20 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
   providers: [Google],
   callbacks: {
     async afterUserCreatedOrUpdated(ctx, args) {
-      await ensureAppProfileForUser(
-        ctx as unknown as GenericMutationCtx<DataModel>,
-        {
-          userId: args.userId as Id<"users">,
-          profile: args.profile,
-        },
-      );
+      try {
+        await ensureAppProfileForUser(
+          ctx as unknown as GenericMutationCtx<DataModel>,
+          {
+            userId: args.userId as Id<"users">,
+            profile: args.profile,
+          },
+        );
+      } catch (error) {
+        console.error("App profile bootstrap failed after Google sign-in", {
+          userId: args.userId,
+          error,
+        });
+      }
     },
   },
 });

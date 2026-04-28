@@ -14,6 +14,14 @@ export function optionalString(value: unknown) {
   return typeof value === "string" && value.trim() ? value.trim() : undefined;
 }
 
+function firstString(...values: unknown[]) {
+  for (const value of values) {
+    const text = optionalString(value);
+    if (text !== undefined) return text;
+  }
+  return undefined;
+}
+
 type AuthProfile = Record<string, unknown> & {
   email?: string;
   name?: string;
@@ -38,35 +46,34 @@ export async function ensureAppProfileForUser(
   },
 ) {
   const authUser = await ctx.db.get(args.userId);
-  const email = optionalString(args.profile?.email ?? authUser?.email)?.toLowerCase();
-  if (!email) {
-    throw new Error(
-      "Google sign-in completed, but Convex Auth did not store an email for this user.",
-    );
-  }
-
+  const email = firstString(args.profile?.email, authUser?.email)?.toLowerCase();
   const name =
-    optionalString(args.profile?.name) ??
-    optionalString(authUser?.name) ??
-    email;
+    firstString(args.profile?.name, authUser?.name) ??
+    email ??
+    "Fitness user";
   const image =
-    optionalString(args.profile?.image) ??
-    optionalString(args.profile?.picture) ??
-    optionalString(args.profile?.pictureUrl) ??
-    optionalString(authUser?.image);
-  const isOwner = ownerEmails().includes(email);
+    firstString(
+      args.profile?.image,
+      args.profile?.picture,
+      args.profile?.pictureUrl,
+      authUser?.image,
+    );
   const now = Date.now();
   const existing = await ctx.db
     .query("profiles")
     .withIndex("by_user", (q) => q.eq("userId", args.userId))
     .unique();
+  const resolvedEmail =
+    email ?? optionalString(existing?.email)?.toLowerCase();
+  const isOwner =
+    resolvedEmail !== undefined && ownerEmails().includes(resolvedEmail);
 
   if (existing) {
     const patch: Partial<typeof existing> & { updatedAt: number } = {
-      email,
       name,
       updatedAt: now,
     };
+    if (resolvedEmail !== undefined) patch.email = resolvedEmail;
     if (image !== undefined) patch.image = image;
     if (isOwner) {
       patch.role = "super_admin";
@@ -92,7 +99,6 @@ export async function ensureAppProfileForUser(
   const role = isOwner ? "super_admin" : "user";
   const profileDocument = {
     userId: args.userId,
-    email,
     name,
     leaderboardVisible: true,
     role,
@@ -107,7 +113,11 @@ export async function ensureAppProfileForUser(
   } as const;
   const profileId = await ctx.db.insert(
     "profiles",
-    image === undefined ? profileDocument : { ...profileDocument, image },
+    {
+      ...profileDocument,
+      ...(email === undefined ? {} : { email }),
+      ...(image === undefined ? {} : { image }),
+    },
   );
 
   await ctx.db.insert("accessRequests", {
