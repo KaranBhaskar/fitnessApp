@@ -70,7 +70,6 @@ type AppContextValue = {
 
 const AppContext = createContext<AppContextValue | undefined>(undefined);
 const today = todayKey();
-const authLoadingTimeoutMs = 15000;
 const fallbackUser = initialDemoState.users.find(
   (user) => user.id === "user-karan",
 )!;
@@ -234,19 +233,6 @@ function ConvexProfileBridge({
     dashboardSummaryRef,
     isAuthenticated && viewerProfile?.status === "approved" ? {} : "skip",
   );
-
-  useEffect(() => {
-    if (!isLoading) return;
-    const timeout = window.setTimeout(() => {
-      setAuthStatus({
-        loading: false,
-        authenticated: false,
-        error:
-          "Google sign-in did not finish. Please try again; if this repeats, check SITE_URL and the Google OAuth redirect URI.",
-      });
-    }, authLoadingTimeoutMs);
-    return () => window.clearTimeout(timeout);
-  }, [isLoading, setAuthStatus]);
 
   useEffect(() => {
     if (isLoading) {

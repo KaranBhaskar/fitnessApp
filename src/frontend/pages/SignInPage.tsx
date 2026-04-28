@@ -1,7 +1,7 @@
 import { Flame } from "lucide-react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useQuery } from "convex/react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { useApp } from "../app/AppContext";
 import { Footer } from "../layouts/Footer";
@@ -24,13 +24,7 @@ export function SignInPage() {
   }
 
   if (authMode === "convex" && authLoading) {
-    return (
-      <main className="flex min-h-screen items-center justify-center bg-cream px-4 text-plum dark:bg-[#160229] dark:text-cream">
-        <div className="rounded-3xl border border-plum/10 bg-white p-5 text-sm font-black dark:border-white/10 dark:bg-white/10">
-          Finishing sign in
-        </div>
-      </main>
-    );
+    return <ConvexAuthLoadingScreen />;
   }
 
   function demoSignIn() {
@@ -65,6 +59,60 @@ export function SignInPage() {
       <Footer />
     </main>
   );
+}
+
+function ConvexAuthLoadingScreen() {
+  const { signOut } = useAuthActions();
+  const [showRecovery, setShowRecovery] = useState(false);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => setShowRecovery(true), 20000);
+    return () => window.clearTimeout(timeout);
+  }, []);
+
+  function restartSignIn() {
+    clearConvexAuthStorage();
+    void signOut()
+      .catch(() => undefined)
+      .finally(() => {
+        clearConvexAuthStorage();
+        window.location.replace("/sign-in");
+      });
+  }
+
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-cream px-4 text-plum dark:bg-[#160229] dark:text-cream">
+      <div className="max-w-sm rounded-3xl border border-plum/10 bg-white p-5 text-center text-sm font-black dark:border-white/10 dark:bg-white/10">
+        <p>Finishing sign in</p>
+        {showRecovery && (
+          <div className="mt-4 space-y-3 text-left">
+            <p className="text-xs font-bold leading-5 text-ink/65 dark:text-cream/65">
+              This browser session is taking longer than expected. Restarting clears the temporary OAuth session and lets Google try again.
+            </p>
+            <button
+              className="focus-ring w-full rounded-2xl bg-plum px-4 py-3 text-sm font-black text-white"
+              onClick={restartSignIn}
+            >
+              Restart Google sign-in
+            </button>
+          </div>
+        )}
+      </div>
+    </main>
+  );
+}
+
+function clearConvexAuthStorage() {
+  try {
+    for (const key of Object.keys(window.localStorage)) {
+      if (key.startsWith("__convexAuth")) window.localStorage.removeItem(key);
+    }
+    for (const key of Object.keys(window.sessionStorage)) {
+      if (key.startsWith("__convexAuth")) window.sessionStorage.removeItem(key);
+    }
+  } catch {
+    // Storage can be unavailable in private browsing or locked-down browsers.
+  }
 }
 
 function ConvexGoogleButton() {
