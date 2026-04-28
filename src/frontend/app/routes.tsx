@@ -16,7 +16,8 @@ export function signedInDestination(
 }
 
 export function RequireAuth() {
-  const { currentUser } = useApp();
+  const { authLoading, currentUser } = useApp();
+  if (authLoading) return <AuthLoading />;
   if (!currentUser) return <Navigate to="/sign-in" replace />;
   if (!canAccessApp(currentUser)) return <Navigate to="/pending" replace />;
   return <Outlet />;
@@ -34,7 +35,8 @@ export function RequireOnboarding() {
 }
 
 export function RequireAdmin() {
-  const { currentUser } = useApp();
+  const { authLoading, currentUser } = useApp();
+  if (authLoading) return <AuthLoading />;
   if (!canAccessAdmin(currentUser)) return <Navigate to="/dashboard" replace />;
   return (
     <AppShell>
@@ -47,4 +49,14 @@ export function RequireFeature({ feature }: { feature: keyof FeatureFlags }) {
   const { state } = useApp();
   if (!state.featureFlags[feature]) return <Navigate to="/dashboard" replace />;
   return <Outlet />;
+}
+
+function AuthLoading() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-cream text-plum dark:bg-[#160229] dark:text-cream">
+      <div className="rounded-3xl border border-plum/10 bg-white/80 px-5 py-4 text-sm font-black dark:border-white/10 dark:bg-white/10">
+        Finishing sign in
+      </div>
+    </div>
+  );
 }

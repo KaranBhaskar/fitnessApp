@@ -8,7 +8,16 @@ import { signedInDestination } from "../app/routes";
 const appName = (import.meta.env.VITE_APP_NAME as string | undefined) ?? "Fitness Tracker";
 
 export function LandingPage() {
-  const { currentUser, dark, setDark, state } = useApp();
+  const { authLoading, authMode, currentUser, dark, setDark, state } = useApp();
+  if (authMode === "convex" && authLoading) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-cream px-4 text-plum dark:bg-[#160229] dark:text-cream">
+        <div className="rounded-3xl border border-plum/10 bg-white p-5 text-sm font-black dark:border-white/10 dark:bg-white/10">
+          Loading
+        </div>
+      </main>
+    );
+  }
   if (currentUser) {
     return <Navigate to={signedInDestination(currentUser, state)} replace />;
   }

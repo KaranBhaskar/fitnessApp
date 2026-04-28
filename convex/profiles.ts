@@ -33,14 +33,34 @@ export const ensureProfile = mutation({
   args: {},
   handler: async (ctx) => {
     const { userId } = await requireAuth(ctx);
-    const existing = await getProfileByUserId(ctx, userId);
-    if (existing) return existing;
-
     const identity = await ctx.auth.getUserIdentity();
     const email = identity?.email?.toLowerCase();
     if (!email)
       throw new Error("Google sign-in must provide an email address.");
     const isOwner = Boolean(email && ownerEmails().includes(email));
+    const existing = await getProfileByUserId(ctx, userId);
+    if (existing) {
+      if (
+        isOwner &&
+        (existing.role !== "super_admin" || existing.status !== "approved")
+      ) {
+        await ctx.db.patch(existing._id, {
+          email,
+          role: "super_admin",
+          status: "approved",
+          updatedAt: Date.now(),
+        });
+        await ctx.db.insert("auditEvents", {
+          actorId: userId,
+          targetUserId: userId,
+          action: "auto_promote_owner",
+          createdAt: Date.now(),
+        });
+        return await ctx.db.get(existing._id);
+      }
+      return existing;
+    }
+
     const mode = await getAppMode(ctx);
     const now = Date.now();
     const status = isOwner || mode === "open" ? "approved" : "pending";

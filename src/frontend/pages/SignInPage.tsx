@@ -6,11 +6,28 @@ import { Footer } from "../layouts/Footer";
 import { signedInDestination } from "../app/routes";
 
 export function SignInPage() {
-  const { authMode, currentUser, signInDemoGoogle, state } = useApp();
+  const {
+    authLoading,
+    authMode,
+    convexAuthenticated,
+    currentUser,
+    signInDemoGoogle,
+    state,
+  } = useApp();
   const navigate = useNavigate();
 
   if (currentUser) {
     return <Navigate to={signedInDestination(currentUser, state)} replace />;
+  }
+
+  if (authMode === "convex" && (authLoading || convexAuthenticated)) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-cream px-4 text-plum dark:bg-[#160229] dark:text-cream">
+        <div className="rounded-3xl border border-plum/10 bg-white p-5 text-sm font-black dark:border-white/10 dark:bg-white/10">
+          Finishing sign in
+        </div>
+      </main>
+    );
   }
 
   function demoSignIn() {
