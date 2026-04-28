@@ -1,5 +1,4 @@
 import { Activity, Flame, LineChart, Lock, Moon, Shield, Sun } from "lucide-react";
-import { useEffect, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { Footer } from "../layouts/Footer";
 import { IconButton } from "../components/ui";
@@ -10,22 +9,12 @@ const appName = (import.meta.env.VITE_APP_NAME as string | undefined) ?? "Fitnes
 
 export function LandingPage() {
   const { authLoading, authMode, currentUser, dark, setDark, state } = useApp();
-  const [loadingTimedOut, setLoadingTimedOut] = useState(false);
 
-  useEffect(() => {
-    if (!authLoading) {
-      setLoadingTimedOut(false);
-      return;
-    }
-    const timer = window.setTimeout(() => setLoadingTimedOut(true), 8000);
-    return () => window.clearTimeout(timer);
-  }, [authLoading]);
-
-  if (authMode === "convex" && authLoading && !loadingTimedOut) {
+  if (authMode === "convex" && authLoading) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-cream px-4 text-plum dark:bg-[#160229] dark:text-cream">
         <div className="rounded-3xl border border-plum/10 bg-white p-5 text-sm font-black dark:border-white/10 dark:bg-white/10">
-          Loading
+          Finishing sign in
         </div>
       </main>
     );

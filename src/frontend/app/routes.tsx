@@ -1,5 +1,4 @@
 import { Navigate, Outlet } from "react-router-dom";
-import { useEffect, useState } from "react";
 import { canAccessAdmin, canAccessApp } from "../../lib/privacy";
 import { useApp } from "./AppContext";
 import { AppShell } from "../layouts/AppShell";
@@ -53,15 +52,6 @@ export function RequireFeature({ feature }: { feature: keyof FeatureFlags }) {
 }
 
 function AuthLoading() {
-  const [loadingTimedOut, setLoadingTimedOut] = useState(false);
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => setLoadingTimedOut(true), 8000);
-    return () => window.clearTimeout(timer);
-  }, []);
-
-  if (loadingTimedOut) return <Navigate to="/sign-in" replace />;
-
   return (
     <div className="flex min-h-screen items-center justify-center bg-cream text-plum dark:bg-[#160229] dark:text-cream">
       <div className="rounded-3xl border border-plum/10 bg-white/80 px-5 py-4 text-sm font-black dark:border-white/10 dark:bg-white/10">

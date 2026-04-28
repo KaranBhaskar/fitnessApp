@@ -1,7 +1,7 @@
 import { Flame } from "lucide-react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useQuery } from "convex/react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { useApp } from "../app/AppContext";
 import { Footer } from "../layouts/Footer";
@@ -17,22 +17,12 @@ export function SignInPage() {
     state,
   } = useApp();
   const navigate = useNavigate();
-  const [loadingTimedOut, setLoadingTimedOut] = useState(false);
-
-  useEffect(() => {
-    if (!authLoading) {
-      setLoadingTimedOut(false);
-      return;
-    }
-    const timer = window.setTimeout(() => setLoadingTimedOut(true), 8000);
-    return () => window.clearTimeout(timer);
-  }, [authLoading]);
 
   if (currentUser) {
     return <Navigate to={signedInDestination(currentUser, state)} replace />;
   }
 
-  if (authMode === "convex" && authLoading && !loadingTimedOut) {
+  if (authMode === "convex" && authLoading) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-cream px-4 text-plum dark:bg-[#160229] dark:text-cream">
         <div className="rounded-3xl border border-plum/10 bg-white p-5 text-sm font-black dark:border-white/10 dark:bg-white/10">
@@ -104,7 +94,7 @@ function ConvexGoogleButton() {
       <GoogleButton
         onClick={() => {
           setError(undefined);
-          void signIn("google", { redirectTo: "/" }).catch(() => {
+          void signIn("google", { redirectTo: "/sign-in" }).catch(() => {
             setError("Google sign-in could not start. Check Convex Auth environment variables and Google OAuth redirect URLs.");
           });
         }}

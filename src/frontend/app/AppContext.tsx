@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { useMutation, useQuery, useConvexAuth } from "convex/react";
 import { initialDemoState } from "../../data/demoState";
@@ -217,6 +217,7 @@ function ConvexProfileBridge({
   setState: React.Dispatch<React.SetStateAction<AppState>>;
 }) {
   const { isAuthenticated, isLoading } = useConvexAuth();
+  const ensuredUserRef = useRef<string | undefined>(undefined);
   const ensureProfile = useMutation(ensureProfileRef);
   const viewer = useQuery(viewerRef, isAuthenticated ? {} : "skip");
   const viewerProfile = viewer?.profile
@@ -232,8 +233,9 @@ function ConvexProfileBridge({
       setAuthStatus({ loading: true, authenticated: false });
       return;
     }
-    setAuthStatus({ loading: false, authenticated: isAuthenticated });
     if (!isAuthenticated) {
+      ensuredUserRef.current = undefined;
+      setAuthStatus({ loading: false, authenticated: false });
       setState((current) => ({
         ...current,
         currentUserId: undefined,
@@ -241,6 +243,17 @@ function ConvexProfileBridge({
       }));
       return;
     }
+    setAuthStatus({ loading: true, authenticated: true });
+  }, [isAuthenticated, isLoading, setAuthStatus, setState]);
+
+  useEffect(() => {
+    if (isLoading || !isAuthenticated) return;
+    if (!viewer?.userId) {
+      setAuthStatus({ loading: true, authenticated: true });
+      return;
+    }
+    if (ensuredUserRef.current === viewer.userId) return;
+    ensuredUserRef.current = viewer.userId;
     setAuthStatus({ loading: true, authenticated: true });
     void ensureProfile({}).then((profile) => {
       if (!profile) return;
@@ -257,7 +270,14 @@ function ConvexProfileBridge({
     }).catch(() => {
       setAuthStatus({ loading: false, authenticated: false });
     });
-  }, [ensureProfile, isAuthenticated, isLoading, setAuthStatus, setState]);
+  }, [
+    ensureProfile,
+    isAuthenticated,
+    isLoading,
+    setAuthStatus,
+    setState,
+    viewer?.userId,
+  ]);
 
   useEffect(() => {
     if (!viewer?.userId || !viewer.profile) return;
