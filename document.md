@@ -61,21 +61,23 @@ Google is the only real auth provider in v1.
 
 Important files:
 
-- `convex/auth.ts`: registers the Google provider with Convex Auth.
+- `convex/auth.ts`: registers the Google provider with Convex Auth and runs the post-OAuth profile bootstrap callback.
+- `convex/profileBootstrap.ts`: creates/updates the app profile from the Convex Auth `users` row and Google OAuth profile.
 - `src/main.tsx`: wraps the app in `ConvexAuthProvider` only when `VITE_CONVEX_URL` exists.
 - `src/frontend/pages/SignInPage.tsx`: renders the single Google sign-in action.
-- `convex/profiles.ts`: creates or updates backend profiles.
+- `convex/profiles.ts`: exposes viewer/settings/onboarding functions and a fallback `ensureProfile` mutation for already-signed-in sessions.
 - `convex/permissions.ts`: central auth, approval, admin, feature-flag checks.
 
 Flow:
 
 1. User clicks Google sign-in.
 2. Convex Auth authenticates them.
-3. `ConvexProfileBridge` in `AppContext` calls `profiles:ensureProfile`.
-4. `ensureProfile` saves the Google email and name to `profiles`.
+3. Convex Auth calls `afterUserCreatedOrUpdated` in `convex/auth.ts`.
+4. `ensureAppProfileForUser` saves the Google email and name/image to `profiles`.
 5. If the email is in `OWNER_EMAIL_ALLOWLIST`, the user becomes `super_admin` and `approved`.
 6. If app mode is `open`, new users are approved.
 7. Otherwise new users are `pending` until an admin approves them.
+8. `ConvexProfileBridge` then reads `profiles:viewer`; `profiles:ensureProfile` remains as a fallback repair path for sessions created before this callback existed.
 
 ## Frontend-To-Backend Contract
 

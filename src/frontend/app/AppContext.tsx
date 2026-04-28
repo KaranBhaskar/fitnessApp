@@ -44,10 +44,17 @@ export type DerivedMetrics = {
   projection: ProjectionSummary;
 };
 
+type AuthStatus = {
+  loading: boolean;
+  authenticated: boolean;
+  error?: string;
+};
+
 type AppContextValue = {
   authMode: AuthMode;
   authLoading: boolean;
   convexAuthenticated: boolean;
+  authError?: string;
   state: AppState;
   updateState: (updater: (current: AppState) => AppState) => void;
   currentUser?: UserProfile;
@@ -90,7 +97,7 @@ export function AppProvider({
     authMode === "convex" ? emptyConvexState : initialDemoState,
   );
   const [dark, setDark] = useState(false);
-  const [authStatus, setAuthStatus] = useState({
+  const [authStatus, setAuthStatus] = useState<AuthStatus>({
     loading: authMode === "convex",
     authenticated: false,
   });
@@ -175,6 +182,7 @@ export function AppProvider({
         authMode,
         authLoading: authStatus.loading,
         convexAuthenticated: authStatus.authenticated,
+        authError: authStatus.error,
         state,
         updateState,
         currentUser,
@@ -211,13 +219,11 @@ function ConvexProfileBridge({
   setAuthStatus,
   setState,
 }: {
-  setAuthStatus: React.Dispatch<
-    React.SetStateAction<{ loading: boolean; authenticated: boolean }>
-  >;
+  setAuthStatus: React.Dispatch<React.SetStateAction<AuthStatus>>;
   setState: React.Dispatch<React.SetStateAction<AppState>>;
 }) {
   const { isAuthenticated, isLoading } = useConvexAuth();
-  const ensuredUserRef = useRef<string | undefined>(undefined);
+  const ensureAttemptedRef = useRef(false);
   const ensureProfile = useMutation(ensureProfileRef);
   const viewer = useQuery(viewerRef, isAuthenticated ? {} : "skip");
   const viewerProfile = viewer?.profile
@@ -234,7 +240,7 @@ function ConvexProfileBridge({
       return;
     }
     if (!isAuthenticated) {
-      ensuredUserRef.current = undefined;
+      ensureAttemptedRef.current = false;
       setAuthStatus({ loading: false, authenticated: false });
       setState((current) => ({
         ...current,
@@ -248,15 +254,18 @@ function ConvexProfileBridge({
 
   useEffect(() => {
     if (isLoading || !isAuthenticated) return;
-    if (!viewer?.userId) {
-      setAuthStatus({ loading: true, authenticated: true });
-      return;
-    }
-    if (ensuredUserRef.current === viewer.userId) return;
-    ensuredUserRef.current = viewer.userId;
+    if (ensureAttemptedRef.current) return;
+    ensureAttemptedRef.current = true;
     setAuthStatus({ loading: true, authenticated: true });
     void ensureProfile({}).then((profile) => {
-      if (!profile) return;
+      if (!profile) {
+        setAuthStatus({
+          loading: false,
+          authenticated: true,
+          error: "Profile setup returned empty. Please try signing out and signing in again.",
+        });
+        return;
+      }
       const syncedProfile = profileFromConvex(
         String((profile as { userId?: unknown }).userId ?? ""),
         profile,
@@ -267,8 +276,15 @@ function ConvexProfileBridge({
         users: [syncedProfile],
       }));
       setAuthStatus({ loading: false, authenticated: true });
-    }).catch(() => {
-      setAuthStatus({ loading: false, authenticated: false });
+    }).catch((error: unknown) => {
+      setAuthStatus({
+        loading: false,
+        authenticated: true,
+        error:
+          error instanceof Error
+            ? error.message
+            : "Profile setup failed after Google sign-in.",
+      });
     });
   }, [
     ensureProfile,
@@ -276,7 +292,6 @@ function ConvexProfileBridge({
     isLoading,
     setAuthStatus,
     setState,
-    viewer?.userId,
   ]);
 
   useEffect(() => {

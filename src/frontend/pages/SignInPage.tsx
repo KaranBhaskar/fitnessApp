@@ -10,6 +10,7 @@ import { authConfigurationRef } from "../backend/convexRefs";
 
 export function SignInPage() {
   const {
+    authError,
     authLoading,
     authMode,
     currentUser,
@@ -51,6 +52,11 @@ export function SignInPage() {
           <p className="mt-3 text-sm font-semibold leading-6 text-ink/65 dark:text-cream/65">
             Your Google email is saved to your backend profile. If it is in the owner allowlist, Convex assigns site-owner access automatically.
           </p>
+          {authError && (
+            <p className="mt-4 rounded-2xl border border-rose bg-rose/15 px-4 py-3 text-xs font-black leading-5 text-plum dark:text-cream">
+              {authError}
+            </p>
+          )}
           <div className="mt-6">
             {authMode === "convex" ? <ConvexGoogleButton /> : <GoogleButton onClick={demoSignIn} />}
           </div>

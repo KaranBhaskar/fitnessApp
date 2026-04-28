@@ -106,7 +106,8 @@ function categoryForMode(
 }
 
 export function WorkoutPage() {
-  const { currentUser, state, updateState, latestMeasurement } = useApp();
+  const { authMode, currentUser, state, updateState, latestMeasurement } =
+    useApp();
   const backend = useBackendActions();
   const user = currentUser!;
   const workouts = useMemo(
@@ -227,23 +228,16 @@ export function WorkoutPage() {
     });
   }
 
-  function createCustomPlan(name: string, days: WorkoutDay[]) {
-    const trimmed = name.trim();
-    if (!trimmed || !days.length) return;
-    const inferredActivity = inferActivityLevelFromPlan(days);
-    void backend.createWorkoutPlan(name, days).then((planId) => {
-      if (planId) {
-        void backend.updateProfileSettings({
-          activityLevel: inferredActivity,
-          activeWorkoutPlanId: planId,
-        });
-      }
-    });
-    void backend.updateProfileSettings({ activityLevel: inferredActivity });
+  function activateCreatedPlan(
+    planId: string,
+    name: string,
+    days: WorkoutDay[],
+    activityLevel: ActivityLevel,
+  ) {
     updateState((current) => {
       const plan = {
-        id: crypto.randomUUID(),
-        name: trimmed,
+        id: planId,
+        name,
         days,
         createdAt: new Date().toISOString(),
       };
@@ -254,10 +248,44 @@ export function WorkoutPage() {
         workoutPlan: plan.days,
         users: current.users.map((candidate) =>
           candidate.id === user.id
-            ? { ...candidate, activityLevel: inferredActivity }
+            ? { ...candidate, activityLevel }
             : candidate,
         ),
       };
+    });
+  }
+
+  function createCustomPlan(name: string, days: WorkoutDay[]) {
+    const trimmed = name.trim();
+    if (!trimmed || !days.length) return;
+    const inferredActivity = inferActivityLevelFromPlan(days);
+    if (authMode === "convex") {
+      void backend
+        .createWorkoutPlan(trimmed, days)
+        .then((planId) => {
+          if (!planId) {
+            setStatusMessage("Plan could not be saved. Please try again.");
+            return;
+          }
+          activateCreatedPlan(planId, trimmed, days, inferredActivity);
+          setStatusMessage(`Plan "${trimmed}" saved`);
+          setPlanName("");
+          void backend.updateProfileSettings({
+            activityLevel: inferredActivity,
+            activeWorkoutPlanId: planId,
+          });
+        })
+        .catch(() => {
+          setStatusMessage("Plan could not be saved. Please try again.");
+        });
+      return;
+    }
+
+    const planId = crypto.randomUUID();
+    activateCreatedPlan(planId, trimmed, days, inferredActivity);
+    void backend.updateProfileSettings({
+      activityLevel: inferredActivity,
+      activeWorkoutPlanId: planId,
     });
     setStatusMessage(`Plan "${trimmed}" saved`);
     setPlanName("");
@@ -299,7 +327,11 @@ export function WorkoutPage() {
         d.id === selectedDay.id ? { ...d, exercises: [...d.exercises, created] } : d,
     );
     updateActivePlanDays(() => updatedDays);
-    if (activeTemplate) {
+    if (
+      authMode === "convex" &&
+      activeTemplate &&
+      !activeTemplate.id.startsWith("plan-")
+    ) {
       void backend.updateWorkoutPlan(
         activeTemplate.id,
         activeTemplate.name,

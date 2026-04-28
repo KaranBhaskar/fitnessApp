@@ -1,25 +1,9 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import type { MutationCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
-import { getProfileByUserId, ownerEmails, requireAuth } from "./permissions";
+import { requireAuth } from "./permissions";
+import { ensureAppProfileForUser } from "./profileBootstrap";
 import { assertNumberRange } from "./validation";
-
-const defaultUnits = {
-  weight: "metric",
-  height: "metric",
-  neck: "metric",
-  waist: "metric",
-  hip: "metric",
-} as const;
-
-async function getAppMode(ctx: MutationCtx) {
-  const setting = await ctx.db
-    .query("appSettings")
-    .withIndex("by_key", (q) => q.eq("key", "mode"))
-    .unique();
-  return setting?.mode ?? "beta";
-}
 
 export const viewer = query({
   args: {},
@@ -43,58 +27,7 @@ export const ensureProfile = mutation({
   args: {},
   handler: async (ctx) => {
     const { userId } = await requireAuth(ctx);
-    const identity = await ctx.auth.getUserIdentity();
-    const email = identity?.email?.toLowerCase();
-    if (!email)
-      throw new Error("Google sign-in must provide an email address.");
-    const isOwner = Boolean(email && ownerEmails().includes(email));
-    const existing = await getProfileByUserId(ctx, userId);
-    if (existing) {
-      if (
-        isOwner &&
-        (existing.role !== "super_admin" || existing.status !== "approved")
-      ) {
-        await ctx.db.patch(existing._id, {
-          email,
-          role: "super_admin",
-          status: "approved",
-          updatedAt: Date.now(),
-        });
-        await ctx.db.insert("auditEvents", {
-          actorId: userId,
-          targetUserId: userId,
-          action: "auto_promote_owner",
-          createdAt: Date.now(),
-        });
-        return await ctx.db.get(existing._id);
-      }
-      return existing;
-    }
-
-    const mode = await getAppMode(ctx);
-    const now = Date.now();
-    const status = isOwner || mode === "open" ? "approved" : "pending";
-    const role = isOwner ? "super_admin" : "user";
-
-    const profileId = await ctx.db.insert("profiles", {
-      userId,
-      email,
-      name: identity?.name,
-      image: identity?.pictureUrl,
-      leaderboardVisible: true,
-      role,
-      status,
-      onboardingComplete: false,
-      units: defaultUnits,
-      goal: "fat_loss_strength",
-      activityLevel: "moderate",
-      sexForEstimate: "male",
-      createdAt: now,
-      updatedAt: now,
-    });
-
-    await ctx.db.insert("accessRequests", { userId, status, requestedAt: now });
-    return await ctx.db.get(profileId);
+    return await ensureAppProfileForUser(ctx, { userId });
   },
 });
 

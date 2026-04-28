@@ -15,6 +15,7 @@ import type * as http from "../http.js";
 import type * as measurements from "../measurements.js";
 import type * as nutrition from "../nutrition.js";
 import type * as permissions from "../permissions.js";
+import type * as profileBootstrap from "../profileBootstrap.js";
 import type * as profiles from "../profiles.js";
 import type * as projections from "../projections.js";
 import type * as rateLimit from "../rateLimit.js";
@@ -36,6 +37,7 @@ declare const fullApi: ApiFromModules<{
   measurements: typeof measurements;
   nutrition: typeof nutrition;
   permissions: typeof permissions;
+  profileBootstrap: typeof profileBootstrap;
   profiles: typeof profiles;
   projections: typeof projections;
   rateLimit: typeof rateLimit;

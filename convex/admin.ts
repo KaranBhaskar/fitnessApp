@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getProfileByUserId, ownerEmails, requireAdmin, requireAuth, requireSuperAdmin } from "./permissions";
+import { optionalString } from "./profileBootstrap";
 
 const featureKeys = [
   "workouts",
@@ -18,8 +19,8 @@ export const setupSuperAdmin = mutation({
   args: {},
   handler: async (ctx) => {
     const { userId, profile } = await requireAuth(ctx);
-    const identity = await ctx.auth.getUserIdentity();
-    const email = identity?.email?.toLowerCase();
+    const authUser = await ctx.db.get(userId);
+    const email = optionalString(authUser?.email)?.toLowerCase();
     if (!email || !ownerEmails().includes(email)) throw new Error("This Google account is not in OWNER_EMAIL_ALLOWLIST.");
     if (!profile) throw new Error("Run ensureProfile first.");
     await ctx.db.patch(profile._id, { role: "super_admin", status: "approved", updatedAt: Date.now() });

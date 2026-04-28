@@ -16,7 +16,7 @@ function inferActivityLevelFromPlan(days: WorkoutDay[]): ActivityLevel {
 }
 
 export function NewPlanPage() {
-  const { currentUser, state, updateState } = useApp();
+  const { authMode, currentUser, state, updateState } = useApp();
   const backend = useBackendActions();
   const navigate = useNavigate();
   const user = currentUser!;
@@ -26,35 +26,47 @@ export function NewPlanPage() {
     const trimmed = name.trim();
     if (!trimmed || !days.length) return;
     const inferredActivity = inferActivityLevelFromPlan(days);
-    void backend.createWorkoutPlan(trimmed, days).then((planId) => {
-      if (planId) {
+    const activatePlan = (planId: string) => {
+      updateState((current) => {
+        const plan = {
+          id: planId,
+          name: trimmed,
+          days,
+          createdAt: new Date().toISOString(),
+        };
+        return {
+          ...current,
+          workoutPlanTemplates: [...(current.workoutPlanTemplates ?? []), plan],
+          activeWorkoutPlanId: plan.id,
+          workoutPlan: plan.days,
+          users: current.users.map((candidate) =>
+            candidate.id === user.id
+              ? { ...candidate, activityLevel: inferredActivity }
+              : candidate,
+          ),
+        };
+      });
+      navigate("/workouts");
+    };
+
+    if (authMode === "convex") {
+      void backend.createWorkoutPlan(trimmed, days).then((planId) => {
+        if (!planId) return;
+        activatePlan(planId);
         void backend.updateProfileSettings({
           activityLevel: inferredActivity,
           activeWorkoutPlanId: planId,
         });
-      }
+      });
+      return;
+    }
+
+    const planId = crypto.randomUUID();
+    activatePlan(planId);
+    void backend.updateProfileSettings({
+      activityLevel: inferredActivity,
+      activeWorkoutPlanId: planId,
     });
-    void backend.updateProfileSettings({ activityLevel: inferredActivity });
-    updateState((current) => {
-      const plan = {
-        id: crypto.randomUUID(),
-        name: trimmed,
-        days,
-        createdAt: new Date().toISOString(),
-      };
-      return {
-        ...current,
-        workoutPlanTemplates: [...(current.workoutPlanTemplates ?? []), plan],
-        activeWorkoutPlanId: plan.id,
-        workoutPlan: plan.days,
-        users: current.users.map((candidate) =>
-          candidate.id === user.id
-            ? { ...candidate, activityLevel: inferredActivity }
-            : candidate,
-        ),
-      };
-    });
-    navigate("/workouts");
   }
 
   return (
